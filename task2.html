@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>JS Music Player</title>
+<style>
+/* ---------- Base layout ---------- */
+body{
+  font-family:system-ui,Segoe UI,Helvetica,Arial,sans-serif;
+  background:#141414;
+  color:#f0f0f0;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  height:100vh;
+  margin:0;
+}
+.player{
+  width:320px;
+  background:#1e1e1e;
+  padding:1.5rem 1.25rem;
+  border-radius:12px;
+  box-shadow:0 6px 14px rgba(0,0,0,.6);
+}
+.cover{
+  width:100%;
+  height:190px;
+  background:#333 url('cover.jpg') center/cover no-repeat;
+  border-radius:8px;
+  margin-bottom:1rem;
+}
+.title{font-size:1.1rem;font-weight:600;margin:0}
+.artist{font-size:.9rem;color:#bdbdbd;margin:2px 0 12px}
+.timebar{display:flex;align-items:center;margin:.35rem 0}
+input[type=range]{-webkit-appearance:none;width:100%;margin:0 6px}
+input[type=range]::-webkit-slider-runnable-track{height:4px;background:#555;border-radius:3px}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;height:12px;width:12px;background:#03dac5;border-radius:50%;margin-top:-4px;cursor:pointer}
+.controls{display:flex;justify-content:center;gap:20px;margin-top:10px}
+.controls button{
+  background:none;border:0;color:#f0f0f0;font-size:1.4rem;cursor:pointer;
+}
+.controls button:disabled{opacity:.3;cursor:not-allowed}
+.volume-wrap{margin-top:14px;display:flex;align-items:center;gap:8px}
+footer{font-size:.7rem;color:#666;text-align:center;margin-top:16px}
+</style>
+</head>
+<body>
+
+<div class="player">
+  <div class="cover" id="cover"></div>
+  <p class="title" id="title">—</p>
+  <p class="artist" id="artist">—</p>
+
+  <!-- Progress & timings -->
+  <div class="timebar">
+    <span id="cur">0:00</span>
+    <input type="range" id="progress" value="0">
+    <span id="dur">0:00</span>
+  </div>
+
+  <!-- Controls -->
+  <div class="controls">
+    <button id="prev" title="Previous">&#9664;&#9664;</button>
+    <button id="play" title="Play/Pause">&#9654;</button>
+    <button id="next" title="Next">&#9654;&#9654;</button>
+  </div>
+
+  <!-- Volume -->
+  <div class="volume-wrap">
+    <span>&#128266;</span>
+    <input type="range" id="volume" min="0" max="1" step=".05" value=".75">
+  </div>
+
+  <footer>Vanilla JS Music Player</footer>
+</div>
+<!-- --- JavaScript logic --- -->
+<script>
+/* ----- Playlist definition (add your own songs here) ----- */
+const playlist=[
+  {
+    title:"Jazz in Paris",
+    artist:"Media Right Productions",
+    src:"jazz_in_paris.mp3",
+    cover:"cover.jpg"
+  },
+  {
+    title:"Sunny",
+    artist:"KODOMOi",
+    src:"sunny.mp3",
+    cover:"cover2.jpg"
+  },
+  {
+    title:"Ukulele",
+    artist:"bensound.com",
+    src:"ukulele.mp3",
+    cover:"cover3.jpg"
+  }
+];
+
+let current=0, isPlaying=false;
+const audio=new Audio();
+audio.preload='metadata';
+
+/* --- DOM references --- */
+const titleEl=$('#title'),
+      artistEl=$('#artist'),
+      curEl=$('#cur'),
+      durEl=$('#dur'),
+      progressEl=$('#progress'),
+      volumeEl=$('#volume'),
+      coverEl=$('#cover'),
+      playBtn=$('#play'),
+      prevBtn=$('#prev'),
+      nextBtn=$('#next');
+
+/* --- Helpers --- */
+function $(sel){return document.querySelector(sel);}
+const fmt=t=>new Date(t*1000).toISOString().substr(14,5);
+
+function load(idx){
+  const song=playlist[idx];
+  if(!song) return;
+  audio.src=song.src;
+  titleEl.textContent=song.title;
+  artistEl.textContent=song.artist;
+  coverEl.style.backgroundImage=`url('${song.cover||"cover.jpg"}')`;
+  playBtn.innerHTML='&#9654;'; // reset icon
+  isPlaying=false;
+}
+
+function playPause(){
+  if(!audio.src) load(current);
+  if(isPlaying){ audio.pause(); playBtn.innerHTML='&#9654;'; }
+  else{ audio.play(); playBtn.innerHTML='&#10074;&#10074;'; }
+  isPlaying=!isPlaying;
+}
+
+function next(){ current=(current+1)%playlist.length; load(current); audio.play(); isPlaying=true; playBtn.innerHTML='&#10074;&#10074;';}
+function prev(){ current=(current-1+playlist.length)%playlist.length; load(current); audio.play(); isPlaying=true; playBtn.innerHTML='&#10074;&#10074;';}
+
+/* --- Event listeners --- */
+playBtn.onclick=playPause;
+nextBtn.onclick=next;
+prevBtn.onclick=prev;
+volumeEl.oninput=e=>audio.volume=e.target.value;
+
+/* Progress bar updates */
+audio.ontimeupdate=()=>{
+  progressEl.value=audio.currentTime;
+  curEl.textContent=fmt(audio.currentTime);
+};
+audio.onloadedmetadata=()=>{
+  progressEl.max=audio.duration;
+  durEl.textContent=fmt(audio.duration);
+};
+progressEl.oninput=e=>audio.currentTime=e.target.value;
+
+/* Autoplay next track when one ends */
+audio.onended=next;
+
+load(current);
+</script>
+</body>
+</html>
